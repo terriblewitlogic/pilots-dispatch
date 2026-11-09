@@ -48,6 +48,8 @@ import {
 } from "@/lib/dispatch";
 import { mergeObservation, type LocalRun, type Backup } from "@/lib/local-db";
 import { parseBackup } from "@/lib/backup";
+import { discoveryReferences, discoveryCenter } from "@/lib/discovery";
+import type { Fleet } from "@/lib/operations";
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 const stamp = (n: number) =>
   n
@@ -133,6 +135,7 @@ function Dispatch() {
     [threshold, setThreshold] = useState(20),
     [auto, setAuto] = useState(false),
     [notifications, setNotifications] = useState(false);
+  const [fleet, setFleet] = useState<Fleet>();
   const [discovery, setDiscovery] = useState<Discovery | null>(null),
     [searchBusy, setSearchBusy] = useState(false),
     [center, setCenter] = useState(""),
@@ -203,6 +206,7 @@ function Dispatch() {
         result = await recordLocal(incoming);
         const local = await loadLocal();
         setRuns(local.runs);
+        setFleet(local.operations?.fleet);
         setStorage("Saved in this browser");
       } catch (e) {
         if (e instanceof Error && e.message.includes("older airspace")) throw e;
@@ -257,6 +261,7 @@ function Dispatch() {
         watchRef.current = local.watch;
         setWatch(local.watch);
         setRuns(local.runs);
+        setFleet(local.operations?.fleet);
         setStorage("Saved in this browser");
         for (const a of assess(snapshot))
           notificationStates.current.set(a.code, a.status);
@@ -349,15 +354,9 @@ function Dispatch() {
             : a.needed - b.needed) ||
         a.distance - b.distance,
     );
-  const referenceAirports = [
-    ...new Map(
-      [
-        ...held,
-        ...watch,
-        ...data.air.flights.flatMap((f) => (f.to ? [f.from, f.to] : [f.from])),
-      ].map((a) => [a.code, a]),
-    ).values(),
-  ];
+  const referenceGroups = discoveryReferences(data, fleet, held, watch);
+  const referenceAirports = referenceGroups.flatMap((group) => group.airports);
+  const chosenCenter = discoveryCenter(referenceAirports, center);
   const current = all.find((a) => a.code === selected),
     opportunity = targets.find((a) => a.verified);
   const filtered = (
@@ -425,9 +424,7 @@ function Dispatch() {
     }
   }
   async function discover() {
-    const chosen = referenceAirports.find(
-      (a) => a.code === (center || referenceAirports[0]?.code),
-    );
+    const chosen = chosenCenter;
     if (!chosen) return;
     setSearchBusy(true);
     setError("");
@@ -514,6 +511,7 @@ function Dispatch() {
       setData(dataRef.current);
       setWatch(local.watch);
       setRuns(local.runs);
+      setFleet(local.operations?.fleet);
       setDiscovery(null);
       setSelected("");
       restoreRef.current = false;
@@ -871,8 +869,8 @@ function Dispatch() {
                 <h2>Find your next foothold.</h2>
                 <p>
                   Search game airports, then verify the nearest eight
-                  candidates. Add a watched airport to search from a new
-                  location.
+                  candidates. Start from a current flight destination, a parked
+                  plane’s airport, or a held or watched airport.
                 </p>
               </div>
               <div className="discovery-controls">
@@ -880,13 +878,21 @@ function Dispatch() {
                   Start from
                   <select
                     aria-label="Discovery reference airport"
-                    value={center || referenceAirports[0]?.code || ""}
+                    value={chosenCenter?.code ?? ""}
+                    disabled={!chosenCenter}
                     onChange={(e) => setCenter(e.target.value)}
                   >
-                    {referenceAirports.map((a) => (
-                      <option key={a.code} value={a.code}>
-                        {a.code} · {a.name}
-                      </option>
+                    {!chosenCenter && (
+                      <option value="">Refresh data to load airports</option>
+                    )}
+                    {referenceGroups.map((group) => (
+                      <optgroup key={group.label} label={group.label}>
+                        {group.airports.map((a) => (
+                          <option key={a.code} value={a.code}>
+                            {a.code} · {a.name}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                 </label>
@@ -937,6 +943,7 @@ function Dispatch() {
             <OperationsDesk
               view={mode as OperationsView}
               snapshot={data}
+              onFleetChange={setFleet}
               onView={(v) => setMode(v)}
               onInspectAirport={(code) => {
                 setMode("overview");
