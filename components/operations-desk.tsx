@@ -58,11 +58,13 @@ async function read<T>(path: string): Promise<T> {
 export default function OperationsDesk({
   view,
   snapshot,
+  onFleetChange,
   onInspectAirport,
   onView,
 }: {
   view: OperationsView;
   snapshot: Snapshot;
+  onFleetChange: (fleet: Fleet) => void;
   onInspectAirport: (code: string) => void;
   onView: (view: OperationsView) => void;
 }) {
@@ -125,6 +127,7 @@ export default function OperationsDesk({
   const persist = useCallback(async (patch: Partial<Operations>) => {
     const value = { ...savedRef.current, ...patch };
     savedRef.current = value;
+    if (patch.fleet) onFleetChange(patch.fleet);
     if (mounted.current) setSaved(value);
     try {
       const stored = await patchOperations(patch);
