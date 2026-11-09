@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { baseBriefingSchema } from "./bases.ts";
 import { radarSchema, weatherSchema, regionalSavedSchema } from "./intel.ts";
 import type { Flight } from "./dispatch";
 export const pointSchema = z.tuple([
@@ -97,6 +98,7 @@ export const knownPilotSchema = z.object({
   seenAt: z.number().finite(),
 });
 export const operationsSchema = z.object({
+  bases: baseBriefingSchema.optional(),
   radar: radarSchema.optional(),
   weather: weatherSchema.optional(),
   regional: regionalSavedSchema.optional(),

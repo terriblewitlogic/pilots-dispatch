@@ -27,6 +27,7 @@ The directory is the subset returned by the game's public world response, not a 
 - **Expansion targets:** worldwide nearby airport discovery; verifies the closest eight candidates per search.
 - **Watchlist:** up to 24 airports per company. Add known airports or enter a game code and coordinates anywhere in the world, including when the company has no holdings.
 - **Activity history:** baseline and changes between observations, retained for 90 days or 1,000 checks.
+- **Bases & projects:** a worldwide base map, selected-company/all-company filters, nearest observed holdings, airport holder versus base company details, watchlist shortcuts, and construction material progress. No gate, supply, operating-status, or Base Jump balance is inferred from the public listings.
 - **Fleet:** public active flights, routes, arrival estimates, and optional game flight tracks.
 - **Events and pilot rankings:** public event briefings and aircraft-specific rankings, including a requested pilot's returned rank.
 - **Rival radar:** nearby activity and holdings; flight endpoints are not represented as live aircraft locations or proof of an attack.
@@ -48,6 +49,7 @@ All game calls go through same-origin Next.js route handlers to the fixed upstre
 
 | Local endpoint          | Public game source                           | Company scope                                 |
 | ----------------------- | -------------------------------------------- | --------------------------------------------- |
+| `GET /api/bases`        | `/api/world?v=2` bases and construction      | Shared public listings; company filter in UI  |
 | `GET /api/companies`    | `/api/world?v=2` company metadata            | Shared directory                              |
 | `POST /api/dispatch`    | `/api/air/co{id}`, `/api/standings`          | Required `companyId`                          |
 | `POST /api/discover`    | Airport shards, regional airspace, standings | Required `companyId`                          |
@@ -72,7 +74,7 @@ npm run build
 npm start
 ```
 
-The test suite covers scoring, stale data, rate-limit handling, flight/weather/radar parsing, company-scoped route behavior, IndexedDB isolation, and mismatched backup rejection. GitHub Actions runs the tests, type check, and production build on pushes and pull requests.
+The test suite covers scoring, stale data, rate-limit handling, flight/weather/radar parsing, company-scoped route behavior, IndexedDB isolation, and mismatched backup rejection, multiple base companies at one airport, and construction progress validation. GitHub Actions runs the tests, type check, and production build on pushes and pull requests.
 
 Deploy as a standard **Next.js Node application**, using `npm run build` and `npm start`, or import this repository into a Next.js-compatible host. It requires server-side route handlers: static export / GitHub Pages alone is insufficient. No deployment is automatically performed by this repository. No environment secrets are required for the current read-only integration.
 

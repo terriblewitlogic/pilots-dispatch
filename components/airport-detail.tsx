@@ -25,7 +25,7 @@ type Detail = {
   built?: Record<string, unknown>;
   project?: unknown;
   holder?: string | null;
-  bases?: unknown[];
+  bases?: string[];
   parked?: { cs: string; reg?: string; type?: string; name?: string }[];
   cos: Record<string, { name: string; tag: string }>;
   fetchedAt: number;
@@ -255,7 +255,10 @@ export default function AirportDetail({
             </p>
             {!!detail.bases?.length && (
               <p>
-                <strong>Bases:</strong> {detail.bases.map(describe).join(" / ")}
+                <strong>Bases:</strong>{" "}
+                {detail.bases
+                  .map((co) => detail.cos[co]?.tag ?? co)
+                  .join(" / ")}
               </p>
             )}
             <h4>Parked aircraft</h4>

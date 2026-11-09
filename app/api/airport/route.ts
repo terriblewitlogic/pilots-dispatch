@@ -8,7 +8,7 @@ const detail = z.object({
   project: z.unknown().optional(),
   holder: z.string().nullable().optional(),
   standings: boardSchema.shape.list,
-  bases: z.array(z.unknown()).optional(),
+  bases: z.array(z.string().max(40)).max(100).optional(),
   cos: boardSchema.shape.cos,
   parked: z
     .array(

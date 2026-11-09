@@ -3450,3 +3450,86 @@ button:disabled {
     margin-bottom: 10px;
   }
 }
+.base-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.bases-desk .ranking-table {
+  margin-top: 22px;
+}
+.base-airport-brief {
+  margin-top: 24px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--navy);
+  border-radius: 6px;
+  padding: 0 20px 18px;
+}
+.base-airport-brief .card-heading {
+  padding-left: 0;
+  padding-right: 0;
+}
+.base-airport-brief dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.base-airport-brief dt {
+  font-size: 11px;
+  color: #78888b;
+  margin-bottom: 8px;
+}
+.base-airport-brief dd {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+.base-project-heading {
+  margin-top: 32px;
+}
+.base-projects {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+.base-project {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 22px;
+  border-radius: 6px;
+}
+.base-project h3 {
+  font-size: 25px;
+  margin: 12px 0 6px;
+}
+.base-project p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #748487;
+  margin: 6px 0 16px;
+}
+.base-project strong {
+  font-size: 12px;
+}
+.base-project progress {
+  display: block;
+  width: 100%;
+  height: 10px;
+  accent-color: var(--navy);
+  margin: 18px 0 12px;
+}
+@media (max-width: 760px) {
+  .base-airport-brief dl {
+    grid-template-columns: 1fr;
+  }
+  .bases-desk .ops-table-scroll table {
+    min-width: 620px;
+  }
+  .bases-desk .notice {
+    flex-wrap: wrap;
+  }
+  .base-projects {
+    grid-template-columns: 1fr;
+  }
+}

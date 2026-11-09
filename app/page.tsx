@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Radar,
+  Building2,
   CloudSun,
   Globe,
   ArrowUpRight,
@@ -28,6 +29,7 @@ import {
 import IntelligenceDesk, {
   type IntelView,
 } from "@/components/intelligence-desk";
+import BasesDesk from "@/components/bases-desk";
 import TerritoryMap from "@/components/territory-map";
 import OperationsDesk, {
   type OperationsView,
@@ -70,7 +72,13 @@ const put = (key: string, value: unknown) => {
   } catch {}
 };
 type Mode =
-  "overview" | "defense" | "targets" | "activity" | OperationsView | IntelView;
+  | "overview"
+  | "defense"
+  | "targets"
+  | "activity"
+  | "bases"
+  | OperationsView
+  | IntelView;
 type Discovery = Snapshot & {
   found: number;
   verified: number;
@@ -84,6 +92,7 @@ const nav = [
   { id: "defense" as Mode, name: "Airport defense", icon: Shield },
   { id: "targets" as Mode, name: "Expansion targets", icon: Crosshair },
   { id: "activity" as Mode, name: "Activity log", icon: History },
+  { id: "bases" as Mode, name: "Bases & projects", icon: Building2 },
   { id: "fleet" as Mode, name: "Fleet board", icon: Plane },
   { id: "events" as Mode, name: "Event briefing", icon: CalendarDays },
   { id: "rankings" as Mode, name: "Pilot rankings", icon: Trophy },
@@ -540,7 +549,7 @@ function Dispatch() {
   };
   const isIntel = ["radar", "weather", "regional"].includes(mode);
   const isOperations =
-    isIntel || ["fleet", "events", "rankings"].includes(mode);
+    isIntel || ["bases", "fleet", "events", "rankings"].includes(mode);
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -688,19 +697,21 @@ function Dispatch() {
                     ? "Airport defense"
                     : mode === "targets"
                       ? "Expansion targets"
-                      : mode === "fleet"
-                        ? "Fleet board"
-                        : mode === "events"
-                          ? "Event briefing"
-                          : mode === "rankings"
-                            ? "Pilot rankings"
-                            : mode === "radar"
-                              ? "Rival radar"
-                              : mode === "weather"
-                                ? "Weather briefings"
-                                : mode === "regional"
-                                  ? "Regional boards"
-                                  : "Activity log"}
+                      : mode === "bases"
+                        ? "Bases & projects"
+                        : mode === "fleet"
+                          ? "Fleet board"
+                          : mode === "events"
+                            ? "Event briefing"
+                            : mode === "rankings"
+                              ? "Pilot rankings"
+                              : mode === "radar"
+                                ? "Rival radar"
+                                : mode === "weather"
+                                  ? "Weather briefings"
+                                  : mode === "regional"
+                                    ? "Regional boards"
+                                    : "Activity log"}
               </h1>
               <p>
                 {mode === "overview"
@@ -709,19 +720,21 @@ function Dispatch() {
                     ? "Keep your ground. Watch the gaps."
                     : mode === "targets"
                       ? "Find your next foothold."
-                      : mode === "fleet"
-                        ? "Follow your company through the skies."
-                        : mode === "events"
-                          ? "A new mission on the horizon."
-                          : mode === "rankings"
-                            ? "See where your flying takes you."
-                            : mode === "radar"
-                              ? "Keep an eye on the neighborhood."
-                              : mode === "weather"
-                                ? "Read the skies before you go."
-                                : mode === "regional"
-                                  ? "Your company. A wider horizon."
-                                  : "Every check tells a story."}
+                      : mode === "bases"
+                        ? "Build a presence. Know the neighborhood."
+                        : mode === "fleet"
+                          ? "Follow your company through the skies."
+                          : mode === "events"
+                            ? "A new mission on the horizon."
+                            : mode === "rankings"
+                              ? "See where your flying takes you."
+                              : mode === "radar"
+                                ? "Keep an eye on the neighborhood."
+                                : mode === "weather"
+                                  ? "Read the skies before you go."
+                                  : mode === "regional"
+                                    ? "Your company. A wider horizon."
+                                    : "Every check tells a story."}
               </p>
             </div>
             <span className="masthead-mark" aria-hidden="true">
@@ -912,7 +925,13 @@ function Dispatch() {
               )}
             </section>
           )}
-          {isIntel ? (
+          {mode === "bases" ? (
+            <BasesDesk
+              snapshot={data}
+              watch={watch}
+              onWatch={(a) => void toggleWatch(a)}
+            />
+          ) : isIntel ? (
             <IntelligenceDesk view={mode as IntelView} snapshot={data} />
           ) : isOperations ? (
             <OperationsDesk
