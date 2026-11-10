@@ -51,7 +51,7 @@ import { mergeObservation, type LocalRun, type Backup } from "@/lib/local-db";
 import { parseBackup } from "@/lib/backup";
 import { discoveryReferences, discoveryCenter } from "@/lib/discovery";
 import type { Fleet } from "@/lib/operations";
-import AnalyticsDesk from "@/components/analytics-desk";
+import AnalyticsWorkspace from "@/components/analytics-workspace";
 import RecentlyLostAirports from "@/components/recently-lost-airports";
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 const stamp = (n: number) =>
@@ -141,6 +141,7 @@ function Dispatch() {
     [auto, setAuto] = useState(false),
     [notifications, setNotifications] = useState(false);
   const [fleet, setFleet] = useState<Fleet>();
+  const [localRevision, setLocalRevision] = useState(0);
   const [discovery, setDiscovery] = useState<Discovery | null>(null),
     [searchBusy, setSearchBusy] = useState(false),
     [center, setCenter] = useState(""),
@@ -517,6 +518,7 @@ function Dispatch() {
       setWatch(local.watch);
       setRuns(local.runs);
       setFleet(local.operations?.fleet);
+      setLocalRevision((revision) => revision + 1);
       setDiscovery(null);
       setSelected("");
       restoreRef.current = false;
@@ -649,7 +651,7 @@ function Dispatch() {
                 {busy
                   ? "Checking company & standings…"
                   : data.airFetchedAt
-                    ? `${isOperations ? "Territory checked" : "Last checked"} ${new Date(data.airFetchedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+                    ? `${isOperations || mode === "analytics" ? "Territory checked" : "Last checked"} ${new Date(data.airFetchedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
                     : "Ready for first check"}
               </strong>
               <span>
@@ -669,7 +671,7 @@ function Dispatch() {
               <RefreshCw size={15} className={busy ? "spin" : ""} />
               {busy
                 ? "Refreshing…"
-                : isOperations
+                : isOperations || mode === "analytics"
                   ? "Refresh territory"
                   : "Refresh data"}
             </button>
@@ -687,7 +689,7 @@ function Dispatch() {
           {busy
             ? "Checking company & standings…"
             : data.airFetchedAt
-              ? `${isOperations ? "Territory checked" : "Last checked"} ${stamp(data.airFetchedAt)}`
+              ? `${isOperations || mode === "analytics" ? "Territory checked" : "Last checked"} ${stamp(data.airFetchedAt)}`
               : "Ready for first check"}{" "}
           · {auto ? "Auto-check on" : "On demand"}
         </div>
@@ -729,7 +731,7 @@ function Dispatch() {
               {mode !== "overview" && (
                 <p>
                   {mode === "analytics"
-                    ? "Track territory, retention, and defense readiness."
+                    ? "Earnings, distance, and flight activity."
                     : mode === "defense"
                       ? "Keep your ground. Watch the gaps."
                       : mode === "targets"
@@ -860,7 +862,7 @@ function Dispatch() {
               </section>
             </>
           )}
-          {!isOperations && !data.airFetchedAt && (
+          {!isOperations && mode !== "analytics" && !data.airFetchedAt && (
             <section className="first-check">
               <RadioMark />
               <h2>Your operations desk is ready.</h2>
@@ -949,7 +951,8 @@ function Dispatch() {
             </section>
           )}
           {mode === "analytics" ? (
-            <AnalyticsDesk
+            <AnalyticsWorkspace
+              key={localRevision}
               snapshot={data}
               runs={runs}
               now={tick}

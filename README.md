@@ -23,7 +23,7 @@ The directory is the subset returned by the game's public world response, not a 
 
 - **Company selection:** dynamic company name/tag, switching, and remembered selection.
 - **Territory map:** observed holdings and airport standings, with verification coverage and original timestamps.
-- **Analytics:** territory holdings and points, observed gains/losses, endpoint retention, vulnerable holdings, and standings coverage. Filter local history to 24 hours, 7, 30, or 90 days; inspect the trend chart and export observations as CSV. Period comparisons require two observations and begin with the first check inside the selected window.
+- **Analytics:** separate Company and Pilot operating-performance views for money earned, nautical miles flown, flight hours, departures, completed jobs, balance, and earnings per departure/hour. Record cumulative game totals or import Company Sync / performance JSON exports. Compare latest totals or period changes over 24 hours, 7, 30, or 90 days, inspect trends, and export CSV. The Territory tab retains holdings, gains/losses, retention, and defense coverage.
 - **Airport defense:** close leads, observed ownership losses, configurable thresholds, and optional desktop notifications while open.
 - **Expansion targets:** worldwide nearby airport discovery; verifies the closest eight candidates per search.
 - **Watchlist:** up to 24 airports per company. Add known airports or enter a game code and coordinates anywhere in the world, including when the company has no holdings.
@@ -43,6 +43,14 @@ Data lives in IndexedDB under a separate database for each company. Preferences 
 Refresh is on demand. Optional territory checks run every five minutes only while the page is open and visible. Other views have their own manual refresh controls. Explicit territory/fleet refresh bypasses successful cached responses but respects cached rate limits. Public directory, radar, weather, and nearby searches reuse bounded caches. Partial failures retain older observations with their original timestamps.
 
 The Node server uses a bounded **process-local** cache. It is not a persistent cloud database or a distributed cache. Multiple server instances have separate caches; a larger public deployment should add a shared cache and application-level request limiting. There are no background monitors or cross-device history sync.
+
+## Operating analytics data
+
+Open **Analytics → Company** or **Analytics → Pilot**, then use **Update totals** to enter cumulative values from the game. Use a stable pilot ID for each personal history; add another pilot by entering a different ID and callsign. Blank fields are unavailable, while an entered zero is a real zero. Values stay local to the selected company's browser database and are included in Dispatch backups.
+
+**Import totals** accepts the existing Company Sync JSON snapshot (`version: 1`, `fetchedAt`, `company`, `viewer`, `stats`, `treasury`) and this dashboard's **Export totals JSON** format (`format: "pilots-performance"`, `version: 1`, `observations`). Company Sync supplies company earnings, jobs, and treasury; it does not provide verified company-wide distance, flight hours, or departures. Pilot values are entered from career stats or restored from a performance export. Arbitrary extra fields are discarded before storage, and company IDs must match the active company. This feature makes no authenticated API calls and stores no game credentials.
+
+Public **Refresh data** does not update these private performance records. Money earned is gross earnings, not profit. The game's career `flights` counter counts departures, so it is not presented as completed flights. Pilot career totals are not company contributions and are never summed into company totals. Compare two observations to see period changes; decreased cumulative counters disable comparisons, while cash balances may legitimately decrease. Rates use matching observations for earnings and their denominator. Saving keeps up to 1,000 observations from the last 90 days. The recorded-observations table can remove an incorrect entry; an import or entry at the same subject and timestamp replaces that observation.
 
 ## API boundary
 
