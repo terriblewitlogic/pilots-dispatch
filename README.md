@@ -19,11 +19,30 @@ Open http://localhost:3000, click **Load directory**, search a company name or t
 
 The directory is the subset returned by the game's public world response, not a complete registry. If a company is missing, expand **Company missing? Enter a public ID**. A public company ID is different from a company join code. Unknown IDs may return empty data; the app does not claim that a manually entered ID is verified.
 
+## Public operations and Private Sync
+
+This combined app has two clearly separated areas:
+
+- **Public operations** uses public game data and needs no personal code. `npm run dev` and `npm start` leave Private Sync disabled. Hosted copies show local setup instructions, with no credential-entry form; `/api/sync` rejects requests.
+- **Private Sync** adds the company roster, base supplies, aircraft, requests, treasury, activity, trends, and Company/Pilot analytics. Enable it only on a computer and local server you control:
+
+```sh
+npm run dev:local
+# Or, after npm run build:
+npm run start:local
+```
+
+Open **http://127.0.0.1:3000/sync**. These launchers bind exclusively to loopback and enable the private routes for that exact origin. Set `PORT` if needed. Public operations remain available at `/`.
+
+**Your personal sync code grants full career access and is exposed to the browser and local server handling it. Anyone controlling that environment can read or misuse it.** The app's read-only requests do not reduce the authority of a stolen code. Never enter it into a hosted, shared, proxied, or tunneled instance. The local form requires an explicit acknowledgment before accepting a code. See [SECURITY.md](SECURITY.md) for controls and limits.
+
+Codes stay in a short-lived server session, not browser storage or exports. Optional private observations and analytics are saved unencrypted in this browser; exports contain private information. Disconnect clears the session but preserves saved records. Private workspace history and analytics have separate removal controls. Fictional previews are never saved.
+
 ## Features
 
 - **Company selection:** dynamic company name/tag, switching, and remembered selection.
 - **Territory map:** observed holdings and airport standings, with verification coverage and original timestamps.
-- **Analytics:** separate Company and Pilot operating-performance views for money earned, nautical miles flown, flight hours, departures, completed jobs, balance, and earnings per departure/hour. Record cumulative game totals or import Company Sync / performance JSON exports. Compare latest totals or period changes over 24 hours, 7, 30, or 90 days, inspect trends, and export CSV. The Territory tab retains holdings, gains/losses, retention, and defense coverage.
+- **Analytics:** separate Company and Pilot operating-performance views for money earned, nautical miles flown, flight hours, departures, completed jobs, balance, and earnings per departure/hour. Save a local Private Sync, record cumulative game totals, or import Company Sync / performance JSON exports. Compare latest totals or period changes over 24 hours, 7, 30, or 90 days, inspect trends, and export CSV. The Territory tab retains holdings, gains/losses, retention, and defense coverage.
 - **Airport defense:** close leads, observed ownership losses, configurable thresholds, and optional desktop notifications while open.
 - **Expansion targets:** worldwide nearby airport discovery; verifies the closest eight candidates per search.
 - **Watchlist:** up to 24 airports per company. Add known airports or enter a game code and coordinates anywhere in the world, including when the company has no holdings.
@@ -38,7 +57,7 @@ The directory is the subset returned by the game's public world response, not a 
 
 ## Data and refresh behavior
 
-Data lives in IndexedDB under a separate database for each company. Preferences are also company-specific. Switching companies unmounts the operations desk; outstanding requests retain the database for the company that started them. A different company's backup cannot overwrite the current company's records. Original TEX Dispatch backups use a different, unscoped format and are intentionally not accepted.
+Public observations and operating analytics live in IndexedDB under a separate database for each company. Private Sync keeps its full snapshots in a separate history database indexed by company (up to 200 per company from the last 90 days); those snapshots are exported from Private Sync separately from the public desk backup. Preferences are also company-specific. Switching companies unmounts the operations desk; outstanding requests retain the database for the company that started them. A different company's backup cannot overwrite the current company's records. Original TEX Dispatch backups use a different, unscoped format and are intentionally not accepted.
 
 Refresh is on demand. Optional territory checks run every five minutes only while the page is open and visible. Other views have their own manual refresh controls. Explicit territory/fleet refresh bypasses successful cached responses but respects cached rate limits. Public directory, radar, weather, and nearby searches reuse bounded caches. Partial failures retain older observations with their original timestamps.
 
@@ -46,13 +65,17 @@ The Node server uses a bounded **process-local** cache. It is not a persistent c
 
 ## Operating analytics data
 
+Saved Private Sync observations automatically populate the same company-scoped database used by Analytics. Use **Open saved Company / Pilot analytics** in Private Sync to select that company. Turning off saving keeps the fresh snapshot in memory and does not update analytics.
+
 Open **Analytics → Company** or **Analytics → Pilot**, then use **Update totals** to enter cumulative values from the game. Use a stable pilot ID for each personal history; add another pilot by entering a different ID and callsign. Blank fields are unavailable, while an entered zero is a real zero. Values stay local to the selected company's browser database and are included in Dispatch backups.
 
-**Import totals** accepts the existing Company Sync JSON snapshot (`version: 1`, `fetchedAt`, `company`, `viewer`, `stats`, `treasury`) and this dashboard's **Export totals JSON** format (`format: "pilots-performance"`, `version: 1`, `observations`). Company Sync supplies company earnings, jobs, and treasury; it does not provide verified company-wide distance, flight hours, or departures. Pilot values are entered from career stats or restored from a performance export. Arbitrary extra fields are discarded before storage, and company IDs must match the active company. This feature makes no authenticated API calls and stores no game credentials.
+**Import totals** accepts the existing Company Sync JSON snapshot (`version: 1`, `fetchedAt`, `company`, `viewer`, `stats`, `treasury`) and this dashboard's **Export totals JSON** format (`format: "pilots-performance"`, `version: 1`, `observations`). Company Sync supplies company earnings, jobs, and treasury; it does not provide verified company-wide distance, flight hours, or departures. New Private Sync snapshots also include available totals for the connected pilot: earnings, nautical miles, hours, departures, jobs, and cash. Older snapshots without pilot totals still import company values. Pilot values can also be entered from career stats or restored from a performance export. Arbitrary extra fields are discarded before storage, and company IDs must match the active company. The analytics page makes no authenticated API calls and stores no game credentials; only the separately enabled local Private Sync performs authenticated reads.
 
 Public **Refresh data** does not update these private performance records. Money earned is gross earnings, not profit. The game's career `flights` counter counts departures, so it is not presented as completed flights. Pilot career totals are not company contributions and are never summed into company totals. Compare two observations to see period changes; decreased cumulative counters disable comparisons, while cash balances may legitimately decrease. Rates use matching observations for earnings and their denominator. Saving keeps up to 1,000 observations from the last 90 days. The recorded-observations table can remove an incorrect entry; an import or entry at the same subject and timestamp replaces that observation.
 
 ## API boundary
+
+The private `GET/POST/DELETE /api/sync` endpoint is disabled by default. With the local launcher, POST makes only the fixed career read (`op: get`); GET reads local session status and DELETE disconnects. No gameplay writes are exposed.
 
 All game calls go through same-origin Next.js route handlers to the fixed upstream host `https://pilots.nimblebit.com`. Only read-only endpoints are used. Company IDs and airport/search inputs are validated, requests have timeouts, responses are size-limited, and tile/standings batches are bounded. No arbitrary upstream URL proxy is exposed.
 
@@ -85,7 +108,7 @@ npm start
 
 The test suite covers scoring, stale data, rate-limit handling, flight/weather/radar parsing, company-scoped route behavior, IndexedDB isolation, and mismatched backup rejection, multiple base companies at one airport, and construction progress validation. GitHub Actions runs the tests, type check, and production build on pushes and pull requests.
 
-Deploy as a standard **Next.js Node application**, using `npm run build` and `npm start`, or import this repository into a Next.js-compatible host. It requires server-side route handlers: static export / GitHub Pages alone is insufficient. No deployment is automatically performed by this repository. No environment secrets are required for the current read-only integration.
+Deploy as a standard **Next.js Node application**, using `npm run build` and `npm start`, or import this repository into a Next.js-compatible host. It requires server-side route handlers: static export / GitHub Pages alone is insufficient. No deployment is automatically performed by this repository. No environment secrets are required for public operations. Never set `PILOTS_LOCAL_SYNC` or `PILOTS_SYNC_ORIGIN` on a hosted deployment. Private Sync is enabled by the local launcher only; recognized hosted runtimes are also blocked.
 
 Formatting: `npm run format`; check formatting with `npm run format:check`.
 

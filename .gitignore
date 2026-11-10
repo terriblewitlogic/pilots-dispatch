@@ -6,3 +6,10 @@ dist/
 !.env.example
 .DS_Store
 coverage/
+
+# Private local exports and diagnostics
+*.log
+private-data/
+exports/
+dispatch-sync-*.json
+pilots-performance-*.json

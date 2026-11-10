@@ -261,3 +261,37 @@ test("history prunes expired observations and bounds storage", () => {
   assert.equal(result[0].observedAt, NOW);
   assert.equal(result.at(-1).observedAt, NOW - 999);
 });
+
+test("local sync saves separate company and pilot observations and leaves public state intact", async () => {
+  const { performanceFromSync } = await import("../lib/performance.ts");
+  const { exampleSnapshot } = await import("../lib/sync-example.ts");
+  const snapshot = exampleSnapshot();
+  snapshot.company.id = "sync-analytics-test";
+  snapshot.pilotStats = {
+    earned: 456789,
+    distanceNm: 1234.5,
+    hours: 30,
+    flights: 20,
+    jobs: 25,
+    balance: 12345,
+  };
+  const rows = performanceFromSync(snapshot);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].scope, "company");
+  assert.equal(rows[0].totals.earned, snapshot.stats.earned);
+  assert.equal(rows[0].totals.distanceNm, null);
+  assert.equal(rows[1].scope, "pilot");
+  assert.equal(rows[1].subjectId, snapshot.viewer.pid);
+  assert.deepEqual(rows[1].totals, snapshot.pilotStats);
+  assert.ok(rows.every((r) => r.source === "local-sync"));
+  const db = companyDatabase(snapshot.company.id);
+  await db.recordPerformance(rows);
+  const saved = await db.loadLocal();
+  assert.deepEqual(saved.operations.performance, rows);
+  assert.deepEqual(
+    parsePerformanceImport(snapshot, snapshot.company.id).map((r) => r.scope),
+    ["company", "pilot"],
+  );
+  delete snapshot.pilotStats;
+  assert.equal(performanceFromSync(snapshot).length, 1);
+});

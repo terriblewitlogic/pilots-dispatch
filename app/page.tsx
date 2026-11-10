@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Radar,
+  LockKeyhole,
   ChartNoAxesCombined,
   Building2,
   CloudSun,
@@ -256,6 +257,8 @@ function Dispatch() {
     }
   }, []);
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("view") === "analytics")
+      setMode("analytics");
     let mounted = true;
     (async () => {
       try {
@@ -575,7 +578,7 @@ function Dispatch() {
           <span>{company.name}</span>
           <small>Switch company ↗</small>
         </button>
-        <div className="nav-label">OPERATIONS</div>
+        <div className="nav-label">PUBLIC · NO CODE REQUIRED</div>
         <nav>
           {nav.map((n) => (
             <button
@@ -602,6 +605,11 @@ function Dispatch() {
             Watchlist <b>{watch.length}</b>
           </button>
         </nav>
+        <div className="nav-label">PRIVATE · LOCAL ONLY</div>
+        <a className="nav-button" href="/sync">
+          <LockKeyhole size={18} />
+          Private Sync
+        </a>
         <div className="sidebar-bottom">
           <div className="dispatch-note">
             <Star size={19} />

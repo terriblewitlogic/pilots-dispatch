@@ -17,7 +17,7 @@ export const performanceSnapshotSchema = z
     subjectId: companyIdSchema,
     label: z.string().trim().min(1).max(160),
     observedAt: z.number().finite().positive(),
-    source: z.enum(["manual", "company-sync", "import"]),
+    source: z.enum(["manual", "company-sync", "local-sync", "import"]),
     totals: performanceTotalsSchema,
   })
   .superRefine((value, ctx) => {
@@ -94,6 +94,50 @@ export function mergePerformanceHistory(
     .slice(0, 1000);
 }
 
+const syncPerformanceInputSchema = z.object({
+  version: z.literal(1),
+  fetchedAt: z.number().finite().positive(),
+  company: z.object({ id: companyIdSchema, name: z.string().min(1).max(160) }),
+  viewer: z.object({ pid: companyIdSchema, callsign: z.string().optional() }),
+  stats: z.object({ earned: amount, jobs: amount.int() }).nullable(),
+  treasury: amount.nullable(),
+  pilotStats: performanceTotalsSchema.nullable().optional(),
+});
+
+export function performanceFromSync(
+  raw: unknown,
+  source: "local-sync" | "company-sync" = "local-sync",
+): PerformanceSnapshot[] {
+  const s = syncPerformanceInputSchema.parse(raw);
+  const rows: PerformanceSnapshot[] = [];
+  if (s.stats !== null || s.treasury !== null)
+    rows.push({
+      companyId: s.company.id,
+      scope: "company",
+      subjectId: s.company.id,
+      label: s.company.name,
+      observedAt: s.fetchedAt,
+      source,
+      totals: {
+        ...EMPTY_TOTALS,
+        earned: s.stats?.earned ?? null,
+        jobs: s.stats?.jobs ?? null,
+        balance: s.treasury,
+      },
+    });
+  if (s.pilotStats && Object.values(s.pilotStats).some((v) => v !== null))
+    rows.push({
+      companyId: s.company.id,
+      scope: "pilot",
+      subjectId: s.viewer.pid,
+      label: (s.viewer.callsign || s.viewer.pid).slice(0, 160),
+      observedAt: s.fetchedAt,
+      source,
+      totals: s.pilotStats,
+    });
+  return performanceHistorySchema.parse(rows);
+}
+
 export function parsePerformanceImport(
   raw: unknown,
   companyId: string,
@@ -118,45 +162,12 @@ export function parsePerformanceImport(
       now,
     );
   }
-  // Read only allowlisted totals from the existing Company Sync export format.
-  const sync = z
-    .object({
-      version: z.literal(1),
-      fetchedAt: z.number().finite().positive(),
-      company: z.object({
-        id: companyIdSchema,
-        name: z.string().min(1).max(160),
-      }),
-      viewer: z.object({ pid: companyIdSchema }),
-      stats: z.object({ earned: amount, jobs: amount.int() }).nullable(),
-      treasury: amount.nullable(),
-    })
-    .safeParse(raw);
-  if (sync.success) {
-    const s = sync.data;
-    if (s.stats === null && s.treasury === null)
-      throw Error("This company export contains no financial totals.");
-    return mergePerformanceHistory(
-      [],
-      [
-        {
-          companyId: s.company.id,
-          scope: "company",
-          subjectId: s.company.id,
-          label: s.company.name,
-          observedAt: s.fetchedAt,
-          source: "company-sync",
-          totals: {
-            ...EMPTY_TOTALS,
-            earned: s.stats?.earned ?? null,
-            jobs: s.stats?.jobs ?? null,
-            balance: s.treasury,
-          },
-        },
-      ],
-      companyId,
-      now,
-    );
+  const synced = syncPerformanceInputSchema.safeParse(raw);
+  if (synced.success) {
+    const rows = performanceFromSync(synced.data, "company-sync");
+    if (!rows.length)
+      throw Error("This company export contains no financial or pilot totals.");
+    return mergePerformanceHistory([], rows, companyId, now);
   }
   throw Error(
     "Choose a Company Sync export or a Pilots Dispatch performance export. You can also enter totals from the game using Update totals.",

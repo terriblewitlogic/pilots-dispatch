@@ -28,6 +28,7 @@ const stamp = (time: number) =>
 const sourceName = {
   manual: "Entered totals",
   "company-sync": "Company Sync import",
+  "local-sync": "Private local sync",
   import: "Imported totals",
 };
 const localDateTime = () => {
@@ -222,11 +223,12 @@ export default function PerformanceDashboard({
         </div>
       </div>
       <p className="performance-source-note">
-        These private totals update when you enter game statistics or import a
-        snapshot. Refresh data updates public territory only.{" "}
+        These totals update after a saved Private Sync on your own local server,
+        or when you enter or import statistics. Refresh territory updates public
+        data only.{" "}
         {scope === "company"
           ? "Company Sync exports provide earnings, jobs, and treasury balance; distance, hours, and departures remain unavailable unless you supply company-wide totals."
-          : "Enter this pilot’s career totals. Pilots stay separate and are never summed into company totals."}
+          : "Private Sync supplies the connected pilot’s career totals. You can also enter or import them. Pilots stay separate and are never summed into company totals."}
       </p>
       {error && (
         <div className="notice" role="alert">
@@ -238,6 +240,9 @@ export default function PerformanceDashboard({
           {note}
         </div>
       )}
+      <a className="text-link" href="/sync">
+        Private Sync · local environment only →
+      </a>
       <div className="analytics-toolbar performance-filters">
         <div className="map-tabs" aria-label="Performance values">
           <button
