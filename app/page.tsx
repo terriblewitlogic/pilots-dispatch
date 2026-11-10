@@ -50,6 +50,7 @@ import { mergeObservation, type LocalRun, type Backup } from "@/lib/local-db";
 import { parseBackup } from "@/lib/backup";
 import { discoveryReferences, discoveryCenter } from "@/lib/discovery";
 import type { Fleet } from "@/lib/operations";
+import RecentlyLostAirports from "@/components/recently-lost-airports";
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 const stamp = (n: number) =>
   n
@@ -585,6 +586,15 @@ function Dispatch() {
               )}
             </button>
           ))}
+          <button
+            className="nav-button"
+            aria-label={`Watchlist (${watch.length})`}
+            title="Watchlist"
+            onClick={() => setAdding(true)}
+          >
+            <Star size={18} />
+            Watchlist <b>{watch.length}</b>
+          </button>
         </nav>
         <div className="sidebar-bottom">
           <div className="dispatch-note">
@@ -1037,6 +1047,15 @@ function Dispatch() {
             </section>
           ) : (
             <>
+              {mode === "defense" && (
+                <RecentlyLostAirports
+                  snapshot={data}
+                  runs={runs}
+                  airports={assessments}
+                  now={tick}
+                  onSelect={select}
+                />
+              )}
               <div
                 className={`workspace-grid ${current ? "has-selection" : "no-selection"}`}
               >
@@ -1125,8 +1144,8 @@ function Dispatch() {
                       className="button compact"
                       onClick={() => setAdding(true)}
                     >
-                      <Plus size={14} />
-                      Watch airport
+                      <Star size={14} />
+                      Watchlist ({watch.length})
                     </button>
                   </div>
                   <div className="table-toolbar">
@@ -1373,7 +1392,7 @@ function Dispatch() {
       </main>
       {(settings || adding) && (
         <Dialog
-          title={adding ? "Watch an airport" : "Dispatch settings"}
+          title={adding ? "Airport watchlist" : "Dispatch settings"}
           onClose={() => {
             setSettings(false);
             setAdding(false);
@@ -1382,7 +1401,38 @@ function Dispatch() {
           {adding ? (
             <>
               <div className="eyebrow">LOCAL WATCHLIST</div>
-              <h2>Keep an airport on your radar.</h2>
+              <h2>Your airport watchlist</h2>
+              <p>
+                Saved for {company.name} in this browser. Refresh data to update
+                watched standings.
+              </p>
+              {watch.length ? (
+                <>
+                  <h3>
+                    Watching {watch.length}{" "}
+                    {watch.length === 1 ? "airport" : "airports"}
+                  </h3>
+                  {watch.map((a) => (
+                    <div className="watch-entry" key={a.code}>
+                      <span>
+                        {a.code} · {a.name}
+                      </span>
+                      <button
+                        aria-label={`Remove ${a.code} from watchlist`}
+                        onClick={() => void toggleWatch(a)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <p>
+                  No watched airports yet. Use “Watch airport” in an airport’s
+                  details or add one below.
+                </p>
+              )}
+              <h3>Add an airport</h3>
               <p>
                 Search known airports and observed flight endpoints, or enter an
                 airport’s public code and coordinates anywhere in the world.
@@ -1415,21 +1465,6 @@ function Dispatch() {
                   </p>
                 )}
               </div>
-              {watch.length > 0 && (
-                <>
-                  <h3>Watching {watch.length} airports</h3>
-                  {watch.map((a) => (
-                    <div className="watch-entry" key={a.code}>
-                      <span>
-                        {a.code} · {a.name}
-                      </span>
-                      <button onClick={() => void toggleWatch(a)}>
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </>
-              )}
             </>
           ) : (
             <>

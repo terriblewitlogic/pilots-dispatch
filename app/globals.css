@@ -3533,3 +3533,14 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+.recent-losses {
+  margin-bottom: 24px;
+}
+.recent-losses table {
+  min-width: 700px;
+}
+.recent-losses > .ops-footnote {
+  padding: 12px 20px;
+  margin: 0;
+}
