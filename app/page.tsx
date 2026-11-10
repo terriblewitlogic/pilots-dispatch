@@ -589,7 +589,6 @@ function Dispatch() {
         <div className="sidebar-bottom">
           <div className="dispatch-note">
             <Star size={19} />
-            <strong>Big skies. Good company.</strong>
             <p>
               {company.name}
               <br />
@@ -711,10 +710,9 @@ function Dispatch() {
                                     ? "Regional boards"
                                     : "Activity log"}
               </h1>
-              <p>
-                {mode === "overview"
-                  ? "Big skies. Good company."
-                  : mode === "defense"
+              {mode !== "overview" && (
+                <p>
+                  {mode === "defense"
                     ? "Keep your ground. Watch the gaps."
                     : mode === "targets"
                       ? "Find your next foothold."
@@ -733,7 +731,8 @@ function Dispatch() {
                                   : mode === "regional"
                                     ? "Your company. A wider horizon."
                                     : "Every check tells a story."}
-              </p>
+                </p>
+              )}
             </div>
             <span className="masthead-mark" aria-hidden="true">
               ★ {company.tag} ★
