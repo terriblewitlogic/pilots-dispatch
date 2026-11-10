@@ -13,7 +13,9 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --import ./tests/register.mjs --test tests/*.test.mjs",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "dev:local": "node scripts/local.mjs dev",
+    "start:local": "node scripts/local.mjs start"
   },
   "dependencies": {
     "lucide-react": "^1.31.0",

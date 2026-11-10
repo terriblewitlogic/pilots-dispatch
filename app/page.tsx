@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Radar,
+  LockKeyhole,
+  ChartNoAxesCombined,
   Building2,
   CloudSun,
   Globe,
@@ -50,6 +52,8 @@ import { mergeObservation, type LocalRun, type Backup } from "@/lib/local-db";
 import { parseBackup } from "@/lib/backup";
 import { discoveryReferences, discoveryCenter } from "@/lib/discovery";
 import type { Fleet } from "@/lib/operations";
+import AnalyticsWorkspace from "@/components/analytics-workspace";
+import RecentlyLostAirports from "@/components/recently-lost-airports";
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 const stamp = (n: number) =>
   n
@@ -74,6 +78,7 @@ const put = (key: string, value: unknown) => {
   } catch {}
 };
 type Mode =
+  | "analytics"
   | "overview"
   | "defense"
   | "targets"
@@ -91,6 +96,7 @@ type Discovery = Snapshot & {
 };
 const nav = [
   { id: "overview" as Mode, name: "Territory overview", icon: MapIcon },
+  { id: "analytics" as Mode, name: "Analytics", icon: ChartNoAxesCombined },
   { id: "defense" as Mode, name: "Airport defense", icon: Shield },
   { id: "targets" as Mode, name: "Expansion targets", icon: Crosshair },
   { id: "activity" as Mode, name: "Activity log", icon: History },
@@ -136,6 +142,7 @@ function Dispatch() {
     [auto, setAuto] = useState(false),
     [notifications, setNotifications] = useState(false);
   const [fleet, setFleet] = useState<Fleet>();
+  const [localRevision, setLocalRevision] = useState(0);
   const [discovery, setDiscovery] = useState<Discovery | null>(null),
     [searchBusy, setSearchBusy] = useState(false),
     [center, setCenter] = useState(""),
@@ -250,6 +257,8 @@ function Dispatch() {
     }
   }, []);
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("view") === "analytics")
+      setMode("analytics");
     let mounted = true;
     (async () => {
       try {
@@ -512,6 +521,7 @@ function Dispatch() {
       setWatch(local.watch);
       setRuns(local.runs);
       setFleet(local.operations?.fleet);
+      setLocalRevision((revision) => revision + 1);
       setDiscovery(null);
       setSelected("");
       restoreRef.current = false;
@@ -568,7 +578,7 @@ function Dispatch() {
           <span>{company.name}</span>
           <small>Switch company ↗</small>
         </button>
-        <div className="nav-label">OPERATIONS</div>
+        <div className="nav-label">PUBLIC · NO CODE REQUIRED</div>
         <nav>
           {nav.map((n) => (
             <button
@@ -585,11 +595,24 @@ function Dispatch() {
               )}
             </button>
           ))}
+          <button
+            className="nav-button"
+            aria-label={`Watchlist (${watch.length})`}
+            title="Watchlist"
+            onClick={() => setAdding(true)}
+          >
+            <Star size={18} />
+            Watchlist <b>{watch.length}</b>
+          </button>
         </nav>
+        <div className="nav-label">PRIVATE · LOCAL ONLY</div>
+        <a className="nav-button" href="/sync">
+          <LockKeyhole size={18} />
+          Private Sync
+        </a>
         <div className="sidebar-bottom">
           <div className="dispatch-note">
             <Star size={19} />
-            <strong>Big skies. Good company.</strong>
             <p>
               {company.name}
               <br />
@@ -636,7 +659,7 @@ function Dispatch() {
                 {busy
                   ? "Checking company & standings…"
                   : data.airFetchedAt
-                    ? `${isOperations ? "Territory checked" : "Last checked"} ${new Date(data.airFetchedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+                    ? `${isOperations || mode === "analytics" ? "Territory checked" : "Last checked"} ${new Date(data.airFetchedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
                     : "Ready for first check"}
               </strong>
               <span>
@@ -656,7 +679,7 @@ function Dispatch() {
               <RefreshCw size={15} className={busy ? "spin" : ""} />
               {busy
                 ? "Refreshing…"
-                : isOperations
+                : isOperations || mode === "analytics"
                   ? "Refresh territory"
                   : "Refresh data"}
             </button>
@@ -674,7 +697,7 @@ function Dispatch() {
           {busy
             ? "Checking company & standings…"
             : data.airFetchedAt
-              ? `${isOperations ? "Territory checked" : "Last checked"} ${stamp(data.airFetchedAt)}`
+              ? `${isOperations || mode === "analytics" ? "Territory checked" : "Last checked"} ${stamp(data.airFetchedAt)}`
               : "Ready for first check"}{" "}
           · {auto ? "Auto-check on" : "On demand"}
         </div>
@@ -691,49 +714,53 @@ function Dispatch() {
               <h1>
                 {mode === "overview"
                   ? `${company.tag} Dispatch`
-                  : mode === "defense"
-                    ? "Airport defense"
-                    : mode === "targets"
-                      ? "Expansion targets"
-                      : mode === "bases"
-                        ? "Bases & projects"
-                        : mode === "fleet"
-                          ? "Fleet board"
-                          : mode === "events"
-                            ? "Event briefing"
-                            : mode === "rankings"
-                              ? "Pilot rankings"
-                              : mode === "radar"
-                                ? "Rival radar"
-                                : mode === "weather"
-                                  ? "Weather briefings"
-                                  : mode === "regional"
-                                    ? "Regional boards"
-                                    : "Activity log"}
+                  : mode === "analytics"
+                    ? "Analytics"
+                    : mode === "defense"
+                      ? "Airport defense"
+                      : mode === "targets"
+                        ? "Expansion targets"
+                        : mode === "bases"
+                          ? "Bases & projects"
+                          : mode === "fleet"
+                            ? "Fleet board"
+                            : mode === "events"
+                              ? "Event briefing"
+                              : mode === "rankings"
+                                ? "Pilot rankings"
+                                : mode === "radar"
+                                  ? "Rival radar"
+                                  : mode === "weather"
+                                    ? "Weather briefings"
+                                    : mode === "regional"
+                                      ? "Regional boards"
+                                      : "Activity log"}
               </h1>
-              <p>
-                {mode === "overview"
-                  ? "Big skies. Good company."
-                  : mode === "defense"
-                    ? "Keep your ground. Watch the gaps."
-                    : mode === "targets"
-                      ? "Find your next foothold."
-                      : mode === "bases"
-                        ? "Build a presence. Know the neighborhood."
-                        : mode === "fleet"
-                          ? "Follow your company through the skies."
-                          : mode === "events"
-                            ? "A new mission on the horizon."
-                            : mode === "rankings"
-                              ? "See where your flying takes you."
-                              : mode === "radar"
-                                ? "Keep an eye on the neighborhood."
-                                : mode === "weather"
-                                  ? "Read the skies before you go."
-                                  : mode === "regional"
-                                    ? "Your company. A wider horizon."
-                                    : "Every check tells a story."}
-              </p>
+              {mode !== "overview" && (
+                <p>
+                  {mode === "analytics"
+                    ? "Earnings, distance, and flight activity."
+                    : mode === "defense"
+                      ? "Keep your ground. Watch the gaps."
+                      : mode === "targets"
+                        ? "Find your next foothold."
+                        : mode === "bases"
+                          ? "Build a presence. Know the neighborhood."
+                          : mode === "fleet"
+                            ? "Follow your company through the skies."
+                            : mode === "events"
+                              ? "A new mission on the horizon."
+                              : mode === "rankings"
+                                ? "See where your flying takes you."
+                                : mode === "radar"
+                                  ? "Keep an eye on the neighborhood."
+                                  : mode === "weather"
+                                    ? "Read the skies before you go."
+                                    : mode === "regional"
+                                      ? "Your company. A wider horizon."
+                                      : "Every check tells a story."}
+                </p>
+              )}
             </div>
             <span className="masthead-mark" aria-hidden="true">
               ★ {company.tag} ★
@@ -764,7 +791,7 @@ function Dispatch() {
               </button>
             </div>
           )}
-          {!isOperations && (
+          {!isOperations && mode !== "analytics" && (
             <>
               <div className="dispatch-briefing">
                 <div>
@@ -843,7 +870,7 @@ function Dispatch() {
               </section>
             </>
           )}
-          {!isOperations && !data.airFetchedAt && (
+          {!isOperations && mode !== "analytics" && !data.airFetchedAt && (
             <section className="first-check">
               <RadioMark />
               <h2>Your operations desk is ready.</h2>
@@ -931,7 +958,20 @@ function Dispatch() {
               )}
             </section>
           )}
-          {mode === "bases" ? (
+          {mode === "analytics" ? (
+            <AnalyticsWorkspace
+              key={localRevision}
+              snapshot={data}
+              runs={runs}
+              now={tick}
+              threshold={threshold}
+              onDefense={() => switchMode("defense")}
+              onInspectAirport={(code) => {
+                setMode("defense");
+                select(code);
+              }}
+            />
+          ) : mode === "bases" ? (
             <BasesDesk
               snapshot={data}
               watch={watch}
@@ -1038,6 +1078,15 @@ function Dispatch() {
             </section>
           ) : (
             <>
+              {mode === "defense" && (
+                <RecentlyLostAirports
+                  snapshot={data}
+                  runs={runs}
+                  airports={assessments}
+                  now={tick}
+                  onSelect={select}
+                />
+              )}
               <div
                 className={`workspace-grid ${current ? "has-selection" : "no-selection"}`}
               >
@@ -1126,8 +1175,8 @@ function Dispatch() {
                       className="button compact"
                       onClick={() => setAdding(true)}
                     >
-                      <Plus size={14} />
-                      Watch airport
+                      <Star size={14} />
+                      Watchlist ({watch.length})
                     </button>
                   </div>
                   <div className="table-toolbar">
@@ -1374,7 +1423,7 @@ function Dispatch() {
       </main>
       {(settings || adding) && (
         <Dialog
-          title={adding ? "Watch an airport" : "Dispatch settings"}
+          title={adding ? "Airport watchlist" : "Dispatch settings"}
           onClose={() => {
             setSettings(false);
             setAdding(false);
@@ -1383,7 +1432,38 @@ function Dispatch() {
           {adding ? (
             <>
               <div className="eyebrow">LOCAL WATCHLIST</div>
-              <h2>Keep an airport on your radar.</h2>
+              <h2>Your airport watchlist</h2>
+              <p>
+                Saved for {company.name} in this browser. Refresh data to update
+                watched standings.
+              </p>
+              {watch.length ? (
+                <>
+                  <h3>
+                    Watching {watch.length}{" "}
+                    {watch.length === 1 ? "airport" : "airports"}
+                  </h3>
+                  {watch.map((a) => (
+                    <div className="watch-entry" key={a.code}>
+                      <span>
+                        {a.code} · {a.name}
+                      </span>
+                      <button
+                        aria-label={`Remove ${a.code} from watchlist`}
+                        onClick={() => void toggleWatch(a)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <p>
+                  No watched airports yet. Use “Watch airport” in an airport’s
+                  details or add one below.
+                </p>
+              )}
+              <h3>Add an airport</h3>
               <p>
                 Search known airports and observed flight endpoints, or enter an
                 airport’s public code and coordinates anywhere in the world.
@@ -1416,21 +1496,6 @@ function Dispatch() {
                   </p>
                 )}
               </div>
-              {watch.length > 0 && (
-                <>
-                  <h3>Watching {watch.length} airports</h3>
-                  {watch.map((a) => (
-                    <div className="watch-entry" key={a.code}>
-                      <span>
-                        {a.code} · {a.name}
-                      </span>
-                      <button onClick={() => void toggleWatch(a)}>
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </>
-              )}
             </>
           ) : (
             <>

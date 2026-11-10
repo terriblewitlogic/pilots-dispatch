@@ -1,6 +1,10 @@
 import { companyIdSchema } from "./company.ts";
 import type { Operations } from "./operations";
 import {
+  mergePerformanceHistory,
+  type PerformanceSnapshot,
+} from "./performance";
+import {
   mergeObservation,
   type Snapshot,
   type Airport,
@@ -150,7 +154,8 @@ export function companyDatabase(companyId: string) {
     if (
       backup.companyId !== companyId ||
       (backup.snapshot && backup.snapshot.companyId !== companyId) ||
-      backup.runs.some((r) => r.snapshot.companyId !== companyId)
+      backup.runs.some((r) => r.snapshot.companyId !== companyId) ||
+      backup.operations?.performance?.some((row) => row.companyId !== companyId)
     )
       throw new Error("Backup belongs to another company");
     const db = await open();
@@ -214,6 +219,58 @@ export function companyDatabase(companyId: string) {
     });
   }
 
-  return { loadLocal, recordLocal, saveWatch, importLocal, patchOperations };
+  async function recordPerformance(
+    incoming: PerformanceSnapshot[],
+    remove?: {
+      scope: "company" | "pilot";
+      subjectId: string;
+      observedAt: number;
+    },
+  ): Promise<PerformanceSnapshot[]> {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("state", "readwrite"),
+        state = tx.objectStore("state");
+      const request = state.get("operations");
+      let result: PerformanceSnapshot[] = [],
+        failure: unknown;
+      request.onsuccess = () => {
+        try {
+          const operations: Operations = request.result ?? { pilots: [] };
+          const previous = (operations.performance ?? []).filter(
+            (row) =>
+              !remove ||
+              row.scope !== remove.scope ||
+              row.subjectId !== remove.subjectId ||
+              row.observedAt !== remove.observedAt,
+          );
+          result = mergePerformanceHistory(previous, incoming, companyId);
+          state.put({ ...operations, performance: result }, "operations");
+        } catch (error) {
+          failure = error;
+          tx.abort();
+        }
+      };
+      tx.oncomplete = () => {
+        db.close();
+        resolve(result);
+      };
+      tx.onabort = tx.onerror = () => {
+        db.close();
+        reject(
+          failure ?? tx.error ?? Error("Could not save performance totals."),
+        );
+      };
+    });
+  }
+
+  return {
+    loadLocal,
+    recordLocal,
+    saveWatch,
+    importLocal,
+    patchOperations,
+    recordPerformance,
+  };
 }
 export { mergeObservation } from "./dispatch";

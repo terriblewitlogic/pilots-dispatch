@@ -79,7 +79,8 @@ export function parseBackup(raw: unknown): Backup {
   const b = schema.parse(raw);
   if (
     (b.snapshot && b.snapshot.companyId !== b.companyId) ||
-    b.runs.some((r) => r.snapshot.companyId !== b.companyId)
+    b.runs.some((r) => r.snapshot.companyId !== b.companyId) ||
+    b.operations?.performance?.some((row) => row.companyId !== b.companyId)
   )
     throw new Error("Backup contains mixed companies");
   return b;

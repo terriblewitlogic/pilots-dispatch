@@ -131,6 +131,7 @@ function CompanyChooser({
         <a className="landing-logo" href="/">
           <Plane size={25} /> PILOTS <span>DISPATCH</span>
         </a>
+        <a href="/sync">Private Sync · local only</a>
         <a href="https://pilots.nimblebit.com" target="_blank" rel="noreferrer">
           Open Pocket Pilots <ArrowUpRight size={15} />
         </a>
