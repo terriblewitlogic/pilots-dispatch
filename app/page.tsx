@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Radar,
+  ChartNoAxesCombined,
   Building2,
   CloudSun,
   Globe,
@@ -50,6 +51,7 @@ import { mergeObservation, type LocalRun, type Backup } from "@/lib/local-db";
 import { parseBackup } from "@/lib/backup";
 import { discoveryReferences, discoveryCenter } from "@/lib/discovery";
 import type { Fleet } from "@/lib/operations";
+import AnalyticsDesk from "@/components/analytics-desk";
 import RecentlyLostAirports from "@/components/recently-lost-airports";
 const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 const stamp = (n: number) =>
@@ -75,6 +77,7 @@ const put = (key: string, value: unknown) => {
   } catch {}
 };
 type Mode =
+  | "analytics"
   | "overview"
   | "defense"
   | "targets"
@@ -92,6 +95,7 @@ type Discovery = Snapshot & {
 };
 const nav = [
   { id: "overview" as Mode, name: "Territory overview", icon: MapIcon },
+  { id: "analytics" as Mode, name: "Analytics", icon: ChartNoAxesCombined },
   { id: "defense" as Mode, name: "Airport defense", icon: Shield },
   { id: "targets" as Mode, name: "Expansion targets", icon: Crosshair },
   { id: "activity" as Mode, name: "Activity log", icon: History },
@@ -700,47 +704,51 @@ function Dispatch() {
               <h1>
                 {mode === "overview"
                   ? `${company.tag} Dispatch`
-                  : mode === "defense"
-                    ? "Airport defense"
-                    : mode === "targets"
-                      ? "Expansion targets"
-                      : mode === "bases"
-                        ? "Bases & projects"
-                        : mode === "fleet"
-                          ? "Fleet board"
-                          : mode === "events"
-                            ? "Event briefing"
-                            : mode === "rankings"
-                              ? "Pilot rankings"
-                              : mode === "radar"
-                                ? "Rival radar"
-                                : mode === "weather"
-                                  ? "Weather briefings"
-                                  : mode === "regional"
-                                    ? "Regional boards"
-                                    : "Activity log"}
+                  : mode === "analytics"
+                    ? "Analytics"
+                    : mode === "defense"
+                      ? "Airport defense"
+                      : mode === "targets"
+                        ? "Expansion targets"
+                        : mode === "bases"
+                          ? "Bases & projects"
+                          : mode === "fleet"
+                            ? "Fleet board"
+                            : mode === "events"
+                              ? "Event briefing"
+                              : mode === "rankings"
+                                ? "Pilot rankings"
+                                : mode === "radar"
+                                  ? "Rival radar"
+                                  : mode === "weather"
+                                    ? "Weather briefings"
+                                    : mode === "regional"
+                                      ? "Regional boards"
+                                      : "Activity log"}
               </h1>
               {mode !== "overview" && (
                 <p>
-                  {mode === "defense"
-                    ? "Keep your ground. Watch the gaps."
-                    : mode === "targets"
-                      ? "Find your next foothold."
-                      : mode === "bases"
-                        ? "Build a presence. Know the neighborhood."
-                        : mode === "fleet"
-                          ? "Follow your company through the skies."
-                          : mode === "events"
-                            ? "A new mission on the horizon."
-                            : mode === "rankings"
-                              ? "See where your flying takes you."
-                              : mode === "radar"
-                                ? "Keep an eye on the neighborhood."
-                                : mode === "weather"
-                                  ? "Read the skies before you go."
-                                  : mode === "regional"
-                                    ? "Your company. A wider horizon."
-                                    : "Every check tells a story."}
+                  {mode === "analytics"
+                    ? "Track territory, retention, and defense readiness."
+                    : mode === "defense"
+                      ? "Keep your ground. Watch the gaps."
+                      : mode === "targets"
+                        ? "Find your next foothold."
+                        : mode === "bases"
+                          ? "Build a presence. Know the neighborhood."
+                          : mode === "fleet"
+                            ? "Follow your company through the skies."
+                            : mode === "events"
+                              ? "A new mission on the horizon."
+                              : mode === "rankings"
+                                ? "See where your flying takes you."
+                                : mode === "radar"
+                                  ? "Keep an eye on the neighborhood."
+                                  : mode === "weather"
+                                    ? "Read the skies before you go."
+                                    : mode === "regional"
+                                      ? "Your company. A wider horizon."
+                                      : "Every check tells a story."}
                 </p>
               )}
             </div>
@@ -773,7 +781,7 @@ function Dispatch() {
               </button>
             </div>
           )}
-          {!isOperations && (
+          {!isOperations && mode !== "analytics" && (
             <>
               <div className="dispatch-briefing">
                 <div>
@@ -940,7 +948,19 @@ function Dispatch() {
               )}
             </section>
           )}
-          {mode === "bases" ? (
+          {mode === "analytics" ? (
+            <AnalyticsDesk
+              snapshot={data}
+              runs={runs}
+              now={tick}
+              threshold={threshold}
+              onDefense={() => switchMode("defense")}
+              onInspectAirport={(code) => {
+                setMode("defense");
+                select(code);
+              }}
+            />
+          ) : mode === "bases" ? (
             <BasesDesk
               snapshot={data}
               watch={watch}

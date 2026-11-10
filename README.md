@@ -23,6 +23,7 @@ The directory is the subset returned by the game's public world response, not a 
 
 - **Company selection:** dynamic company name/tag, switching, and remembered selection.
 - **Territory map:** observed holdings and airport standings, with verification coverage and original timestamps.
+- **Analytics:** territory holdings and points, observed gains/losses, endpoint retention, vulnerable holdings, and standings coverage. Filter local history to 24 hours, 7, 30, or 90 days; inspect the trend chart and export observations as CSV. Period comparisons require two observations and begin with the first check inside the selected window.
 - **Airport defense:** close leads, observed ownership losses, configurable thresholds, and optional desktop notifications while open.
 - **Expansion targets:** worldwide nearby airport discovery; verifies the closest eight candidates per search.
 - **Watchlist:** up to 24 airports per company. Add known airports or enter a game code and coordinates anywhere in the world, including when the company has no holdings.
